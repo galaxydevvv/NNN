@@ -1,0 +1,264 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>November Challenge</title>
+</head>
+<body>
+<script>
+  document.body.style.backgroundColor = "white";
+  document.body.style.color = "black";
+</script>
+  <main id="app">
+    <h1>NO NUT NOVEMBER 2026</h1>
+    <p>One bust and it's all over.</p>
+    <p id="progress"></p>
+
+    <table border="1" cellpadding="12" width="100%">
+      <thead>
+        <tr>
+          <th>Sunday</th>
+          <th>Monday</th>
+          <th>Tuesday</th>
+          <th>Wednesday</th>
+          <th>Thursday</th>
+          <th>Friday</th>
+          <th>Saturday</th>
+        </tr>
+      </thead>
+      <tbody id="calendar"></tbody>
+    </table>
+  </main>
+    <footer id="footer">
+  <small>
+    <a href="https://galaxydevvv.github.io/gdev/"
+       target="_blank"
+       rel="noopener noreferrer">
+      made by gdev
+    </a>
+  </small>
+</footer>
+
+<script>
+  const footer = document.getElementById("footer");
+
+  Object.assign(footer.style, {
+    position: "fixed",
+    bottom: "15px",
+    left: "0",
+    width: "100%",
+    textAlign: "center",
+    fontSize: "12px"
+  });
+</script>
+  <script>
+    const YEAR = 2026;
+    const MONTH = 10;
+    const STORAGE = "november-challenge-2026";
+    const FAILURE = "november-challenge-failed-2026";
+
+    const app = document.getElementById("app");
+    const calendar = document.getElementById("calendar");
+
+    const completed = JSON.parse(
+      localStorage.getItem(STORAGE) || "{}"
+    );
+
+    const totalDays = new Date(YEAR, MONTH + 1, 0).getDate();
+    const firstDay = new Date(YEAR, MONTH, 1).getDay();
+
+    const cells = {};
+
+    function failedScreen() {
+      document.body.replaceChildren();
+
+      const title = document.createElement("h1");
+      title.textContent = "YOU FAILED 😡😡😡😡";
+
+      const message = document.createElement("h2");
+      message.textContent = "gooner.";
+
+      const note = document.createElement("p");
+      note.textContent = "There is no going back.";
+
+      document.body.append(title, message, note);
+
+      document.body.style.textAlign = "center";
+      document.body.style.paddingTop = "20vh";
+
+      title.style.fontSize = "65px";
+      message.style.fontSize = "30px";
+    }
+
+    if (localStorage.getItem(FAILURE) === "true") {
+      failedScreen();
+    } else {
+      buildCalendar();
+    }
+
+    function updateProgress() {
+      const count = Object.values(completed)
+        .filter(Boolean).length;
+
+      document.getElementById("progress").textContent =
+        `${count} / ${totalDays} DAYS SURVIVED`;
+    }
+
+    function makeMarker(symbol) {
+      const marker = document.createElement("div");
+
+      marker.textContent = symbol;
+
+      Object.assign(marker.style, {
+        position: "absolute",
+        inset: "0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "80px",
+        fontWeight: "bold",
+        opacity: "0",
+        transform: "scale(0.2)",
+        pointerEvents: "none",
+        transition: "opacity 0.5s, transform 0.5s"
+      });
+
+      return marker;
+    }
+
+    function markCell(cell, symbol, animate = true) {
+      const content = cell.querySelector(".day-content");
+
+      if (content) {
+        content.style.transition = "opacity 0.5s";
+        content.style.opacity = "0";
+      }
+
+      const oldMarker = cell.querySelector(".marker");
+      if (oldMarker) oldMarker.remove();
+
+      const marker = makeMarker(symbol);
+      marker.className = "marker";
+
+      cell.appendChild(marker);
+
+      if (animate) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            marker.style.opacity = "1";
+            marker.style.transform = "scale(1)";
+          });
+        });
+      } else {
+        marker.style.opacity = "1";
+        marker.style.transform = "scale(1)";
+      }
+    }
+
+    function yes(day) {
+      if (localStorage.getItem(FAILURE) === "true") return;
+
+      completed[day] = true;
+      localStorage.setItem(STORAGE, JSON.stringify(completed));
+
+      markCell(cells[day], "✓");
+      updateProgress();
+
+      if (Object.values(completed).filter(Boolean).length === totalDays) {
+        setTimeout(() => {
+          alert("YOU SURVIVED NOVEMBER! 🎉");
+        }, 700);
+      }
+    }
+
+    function no(day) {
+      if (localStorage.getItem(FAILURE) === "true") return;
+
+      localStorage.setItem(FAILURE, "true");
+
+      for (let i = 1; i <= totalDays; i++) {
+        markCell(cells[i], "✕");
+      }
+
+      setTimeout(() => {
+        alert("YOU FAILED 😡\n\nTHE CHALLENGE IS OVER.");
+
+        failedScreen();
+
+        // Browsers generally only allow closing
+        // windows opened by JavaScript.
+        window.close();
+      }, 900);
+    }
+
+    function createDay(day) {
+      const cell = document.createElement("td");
+
+      cells[day] = cell;
+
+      Object.assign(cell.style, {
+        position: "relative",
+        height: "105px",
+        minWidth: "90px",
+        textAlign: "center",
+        overflow: "hidden"
+      });
+
+      const content = document.createElement("div");
+      content.className = "day-content";
+
+      const heading = document.createElement("h2");
+      heading.textContent = day;
+
+      const yesButton = document.createElement("button");
+      yesButton.textContent = "YES ✓";
+      yesButton.onclick = () => yes(day);
+
+      const noButton = document.createElement("button");
+      noButton.textContent = "NO ✕";
+      noButton.onclick = () => no(day);
+
+      content.append(
+        heading,
+        yesButton,
+        document.createTextNode(" "),
+        noButton
+      );
+
+      cell.appendChild(content);
+
+      if (completed[day]) {
+        markCell(cell, "✓", false);
+      }
+
+      return cell;
+    }
+
+    function buildCalendar() {
+      let day = 1;
+
+      while (day <= totalDays) {
+        const row = document.createElement("tr");
+
+        for (let weekday = 0; weekday < 7; weekday++) {
+          if (
+            (day === 1 && weekday < firstDay) ||
+            day > totalDays
+          ) {
+            row.appendChild(document.createElement("td"));
+          } else {
+            row.appendChild(createDay(day));
+            day++;
+          }
+        }
+
+        calendar.appendChild(row);
+      }
+
+      updateProgress();
+    }
+  </script>
+
+</body>
+</html>
